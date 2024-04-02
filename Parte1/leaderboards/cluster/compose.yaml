@@ -95,4 +95,21 @@ services:
       node3:
         condition: service_healthy
 
+  #make a jupyter notebook to connect to the cassandra cluster
+  jupyter:
+    image: jupyter/pyspark-notebook
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=1234
+    networks:
+      - cassandra
+    depends_on:
+      node1:
+        condition: service_healthy
+
 
