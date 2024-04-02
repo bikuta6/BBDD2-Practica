@@ -1,0 +1,52 @@
+---event thingy---
+
+TWO TABLES--
+
+CREATE TABLE user_monster_kills (
+    country text,
+    user_name text,
+    event_id int,
+    monster_id int,
+    email text,
+    PRIMARY KEY ((country, event_id), email)
+);
+
+CREATE TABLE user_kills_counter (
+    country text,
+    event_id int,
+    email text,
+    kills counter,
+    PRIMARY KEY ((country, event_id), email)
+);
+
+INSERT INTO user_monster_kills (country, user_name, event_id, monster_id, email)
+VALUES ('de_DE', 'newUser', 101, 112, 'newuser@example.com');
+
+UPDATE user_kills_counter
+SET kills = kills + 1
+WHERE country = 'de_DE' AND event_id = 101 AND email = 'newuser@example.com';
+
++ python app
+
+--user stats and leader--
+
+CREATE TABLE best_players_by_country_and_dungeon (
+    country text,
+    dungeon_id int,
+    time_minutes int,
+    user_name text,
+    email text,
+    date,
+    PRIMARY KEY ((country, dungeon_id), time_minutes, email)
+) WITH CLUSTERING ORDER BY (time_minutes ASC);
+
+SELECT *
+FROM best_players_by_country_and_dungeon
+WHERE country = 'YourCountryValue' AND dungeon_id = YourDungeonIDValue
+LIMIT 5;
+
+
+
+
+
+
