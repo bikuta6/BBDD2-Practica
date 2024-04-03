@@ -1,0 +1,47 @@
+1.
+:param lootName=>"Arrows"
+
+MATCH (l:Loot {name: $lootName})-[:CONTAINS]-(r:Room)
+RETURN r.room_name
+
+2.
+:param roomId=>10486;
+
+MATCH p=(m:Monster)-[:CONTAINS]-(r:Room {room_id: $roomId})
+RETURN DISTINCT m.name
+
+3.
+MATCH (m:Monster)
+WHERE NOT (m)-[:CONTAINS]-(:Room)
+RETURN m
+
+4.
+MATCH (ini: Area {name: "Panicky Desert of Fomalhaut"})
+MATCH (end: Area {name: "Empowered Steppe of Isengard"})
+CALL apoc.algo.dijkstra(ini, end, "IS_CONNECTED", "weight", 1)
+YIELD path, weight
+RETURN path, weight AS total_weight
+
+5.
+MATCH (ini: Area {name: "Panicky Desert of Fomalhaut"})
+MATCH (end: Area {name: "Empowered Steppe of Isengard"})
+CALL apoc.algo.dijkstra(ini, end, "IS_CONNECTED>", "weight", 1)
+YIELD path, weight
+UNWIND nodes(path) AS node
+MATCH (node)-[:CONTAINS]->(monster:Monster)
+RETURN DISTINCT monster.name AS MonstersToDefeat
+
+6.
+MATCH (start:Area), (end:Area)
+WHERE start.name <> end.name
+CALL apoc.algo.dijkstra(start, end, 'IS_CONNECTED>', 'weigt', 1) YIELD path as pathForward, weight as weightForward
+CALL apoc.algo.dijkstra(end, start, 'IS_CONNECTED>', 'weight', 1) YIELD path as pathBackward, weight as weightBackward
+WITH start, end, pathForward, weightForward, pathBackward, weightBackward
+MERGE (start)-[rForward:SHORTEST_PATH]->(end)
+SET rForward.weight = weightForward
+MERGE (end)-[rBackward:SHORTEST_PATH]->(start)
+SET rBackward.weight = weightBackward
+RETURN start.name, end.name, rForward.weight as ForwardWeight, rBackward.weight as BackwardWeight
+
+7.
+
