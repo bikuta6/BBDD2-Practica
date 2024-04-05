@@ -45,3 +45,31 @@ RETURN start.name, end.name, rForward.weight as ForwardWeight, rBackward.weight 
 
 7.
 
+8.
+MATCH (:Area)-[i:IS_CONNECTED]->(:Room)
+WITH DISTINCT i.dungeon_name AS dungeonName
+
+CALL apoc.cypher.doIt("
+    MATCH (a1:Area)-[i:IS_CONNECTED]->(startRoom:Room)
+    WHERE i.dungeon_name = $dungeonName
+    CALL apoc.path.subgraphNodes(startRoom, {
+        relationshipFilter: 'IS_CONNECTED',
+        labelFilter: 'Room'
+    }) YIELD node
+    SET node.dungeon_name = $dungeonName
+    RETURN count(node) AS updatedRooms
+", {dungeonName: dungeonName}) YIELD value
+
+RETURN dungeonName, value.updatedRooms AS UpdatedRoomCount
+
+
+---- Todos los nodos de esta mazmorra
+
+MATCH (a1:Area)-[i:IS_CONNECTED]->(startRoom:Room)
+MATCH (a2:Area)-[i2:IS_CONNECTED]-(endRoom:Room)
+WHERE i.dungeon_name="Fenglass, Sepulcher of the Terrible Emperors" AND i2.dungeon_name = "Fenglass, Sepulcher of the Terrible Emperors"
+CALL apoc.path.subgraphNodes(startRoom, {
+    relationshipFilter: "IS_CONNECTED",
+    labelFilter: "Room"
+}) YIELD node
+RETURN node, a1, a2
