@@ -45,6 +45,12 @@ RETURN start.name, end.name, rForward.weight as ForwardWeight, rBackward.weight 
 
 7.
 
+MATCH (a1:Area)-[i1:IS_CONNECTED]->(r1:Room)
+MATCH (a2:Area)<-[i2:IS_CONNECTED]-(r2:Room)
+WHERE i1.dungeon_name = i2.dungeon_name 
+CREATE (a1)-[r:PATH {dungeon_name: i1.dungeon_name}]->(a2)
+RETURN a1,a2,r
+
 8.
 MATCH (:Area)-[i:IS_CONNECTED]->(:Room)
 WITH DISTINCT i.dungeon_name AS dungeonName
