@@ -33,15 +33,14 @@ RETURN DISTINCT monster.name AS MonstersToDefeat
 
 6.
 MATCH (start:Area), (end:Area)
-WHERE start.name <> end.name
-CALL apoc.algo.dijkstra(start, end, 'IS_CONNECTED>', 'weigt', 1) YIELD path as pathForward, weight as weightForward
-CALL apoc.algo.dijkstra(end, start, 'IS_CONNECTED>', 'weight', 1) YIELD path as pathBackward, weight as weightBackward
-WITH start, end, pathForward, weightForward, pathBackward, weightBackward
-MERGE (start)-[rForward:SHORTEST_PATH]->(end)
-SET rForward.weight = weightForward
-MERGE (end)-[rBackward:SHORTEST_PATH]->(start)
-SET rBackward.weight = weightBackward
-RETURN start.name, end.name, rForward.weight as ForwardWeight, rBackward.weight as BackwardWeight
+WHERE start <> end
+CALL apoc.algo.dijkstra(start, end, 'IS_CONNECTED>', 'weight', 1) YIELD path, weight
+WITH start, end, nodes(path) AS roomNodes, weight as pathLength
+WHERE all(node in roomNodes[1..-2] WHERE node:Room)
+CREATE (start)-[r:SHORTEST_PATH_TO]->(end)
+SET r.distance = pathLength
+RETURN start.name AS StartArea, end.name AS EndArea, roomNodes AS ShortestPath, pathLength AS PathLength
+
 
 7.
 
@@ -72,7 +71,7 @@ RETURN dungeonName, value.updatedRooms AS UpdatedRoomCount
 ---- Todos los nodos de esta mazmorra
 
 MATCH (a1:Area)-[i:IS_CONNECTED]->(startRoom:Room)
-MATCH (a2:Area)-[i2:IS_CONNECTED]-(endRoom:Room)
+MATCH (a2:Area)<-[i2:IS_CONNECTED]-(endRoom:Room)
 WHERE i.dungeon_name="Fenglass, Sepulcher of the Terrible Emperors" AND i2.dungeon_name = "Fenglass, Sepulcher of the Terrible Emperors"
 CALL apoc.path.subgraphNodes(startRoom, {
     relationshipFilter: "IS_CONNECTED",
