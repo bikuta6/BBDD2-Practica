@@ -1,0 +1,7 @@
+networkx
+pyvis
+matplotlib
+numpy
+cassandra-driver
+streamlit
+graphdatascience

@@ -1,0 +1,1 @@
+docker run -it --tty --rm --volume=$PWD/data:/data --volume=$PWD/import:/backups neo4j/neo4j-admin:5.13.0 neo4j-admin database load dungeons --from-path=/backups
