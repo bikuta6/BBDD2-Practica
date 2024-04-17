@@ -14,7 +14,6 @@ def topk_players(country, event_id, k):
     raw = [{'email': row.email, 'user_name': row.user_name, 'n_killed': row.n_killed} for row in session.execute(query)]
     sorted_data = sorted(raw, key=lambda x: x['n_killed'], reverse=True)
     top_k = json.dumps(sorted_data[:k], indent=4)
-    session.close()
     return top_k
 
 
@@ -40,7 +39,6 @@ def leaderboard_by_country(country):
             to_insert['Top_5'].append(e)
             
         final.append(to_insert)
-    session.close()
     return json.dumps(final, indent=4)
 
 
@@ -52,6 +50,5 @@ def user_stats_per_dun(email, dungeon_id):
     query = f"select time_minutes, date from user_stats where email='{email}' AND dungeon_id={dungeon_id};"
     aux = session.execute(query)
     for row in aux:
-        final.append({'time_minutes':row.time_minutes, 'date':row.date})
-    session.close()   
+        final.append({'time_minutes':row.time_minutes, 'date':row.date}) 
     return json.dumps(final, indent=4)
