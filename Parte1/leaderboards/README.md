@@ -20,6 +20,41 @@ CREATE TABLE IF NOT EXISTS hall_of_fame (
     PRIMARY KEY ((country, dungeon_id), time_minutes))
     WITH CLUSTERING ORDER BY (time_minutes ASC);
 ```
+Debido a la naturaleza de Cassandra, nos hemos visto obligados a cambiar la estructura de las inserciones, necesitando incluir country, username y dungeon_name (para poder devolver los datos requeridos en las escrituras y realizar búsquedas más optimas pues country se encuentra dentro de la clave primaria). La idea de la tabla se basa en la primera lectura hall of fame, y para cubrir los requerimientos utilizará country (puesto que los ranking son locales) y dungeon_id como claves primarias para la distribución entre los nodos y time minutes como clustering key para ordenar los tiempos de forma descendente. La limitación de esta tabla es que es imposible obtener en una única query el top 5 juagdores de todas las dngeons de un país, por tanto hemos recurrido a una función de python que hará queries para todas las dungeon_id del país, devolviendo una respuesta en formato json como la descrita en los requerimientos.
+
+Otra opción que se nos ocurró fue crear una tabla que solo contenga el top 5 para country y dungeon_id, pero la rechazamos porque requeriría un update tras casa inserción algo que par ainserciones a gran escala es ineficiente.
+
+### user_stats
+Esta tabla dado el email del usuario y la dungeon devolverá todas las partidas del usuario dentro de esa dungeon.
+```
+CREATE TABLE IF NOT EXISTS user_stats (
+    email text,
+    dungeon_id int,
+    time_minutes int,
+    date text,
+    PRIMARY KEY ((email, dungeon_id), time_minutes))
+    WITH CLUSTERING ORDER BY (time_minutes ASC);
+```
+Aquí hemos utilizado el email del usuario y la dungeon id como claves primarias de forma que cassandra organice su distribución, seguidamente, y dado que puede ser intereante, decidimos incluir una clustering key con el tiempo en minutos que el usuario tardó en completar la mazmorra, poniendo en primera posición lso tiempos más bajos. 
+
+Para ajustar el output a los requerimientos, hemos decidido de nuevo utilizar una fucnión de python que genera el json con los resultados.
+
+### top_horde
+Esta tabla difiere un poco de las demás pues se basa en eventos y kills de monstruos por parte de los usuarios.
+```
+CREATE TABLE IF NOT EXISTS top_horde (
+    country text,
+    event_id int,
+    email text,
+    user_name text,
+    monster_id int,
+    kill_id int,
+    PRIMARY KEY ((country, event_id), email, kill_id)
+);
+```
+Debido a la naturaleza de Cassandra, nos hemos visto obligados a cambiar la estructura de las inserciones, necesitando incluir country, username y un kill_id, siendo esta última esencial para el funcionamineto objetivo. De nuevo y de forma similar a hall_of_fame, decidimos establecer como claves primarias country y event_id (siendo dungeon_id en el caso anterior). Las clustering key son el email del usuario y, aunque inicialmente parezca de poco uso, kill_id. Esto es porque detnro de una fucnión de python, se hará una query a la tabla haciendo un groupby por los atributos country, event_id e email, devolviendo un count de los elementos de cada grupo, esto será el n_kills de los requerimientos, y este métdo count solo funciona si kill_id se encuentra dentro de las claves (además, al usar las claves primarias contry y event_id, nos aseguramos que el groupby se ejecuta en un solo nodo, reduciendo los problemas de eficiencia que tiene Cassandra con este tipo de operaciones). Seguidamente se ordena por n_kills y se devuelve un json con los top K usuarios con más kills.
+
+Inicialmente pensamos es establecer un atributo tipo counter llamado n_kills dentro de la tabla que hiciese un update sumando uno tras cada inserción en la fila correspondiente, pero esto daba muchos problemas de velocidad y las queries eran poco limpias y comprensibles, por tanto optamos por la versión actual.
 
 
 ## 2. Configuración del entorno
@@ -41,29 +76,10 @@ SOURCE '/var/lib/cassandra/create_and_fill.cql'
 ```
 Y espera a que haya terminado.
 
-## 2. Creación de un Keyspace, Tablas e inserción de datos
+EXTRA: en `cassandra_queries.ipynb` puedes probar las consultas sin acceder a streamlit.
 
-1. **Creación de un _keyspace_**: Crea un keyspace llamado `bbdd2` con
-    la estrategia de replicación `SimpleStrategy` y un factor de
-    replicación de 3.
-2. **Uso del _keyspace_**: Cambia al keyspace universidad para que todas
-    las operaciones posteriores se realicen en este keyspace.
-3. **Creación de una tabla**: Crea una tabla `estudiantes` con campos
-    para el `id` del estudiante, `nombre`, `edad` y `carrera`.
+## 3. Conclusiones
 
-## 3: Inserción y consulta de datos
+Cassandra puede ser ideal para muchos casos, pero para muchos otros más puede requerir el uso de aplicaciones externas, como es el caso. Operaciones más complejas como grouby, ordenaciones que deben tener en cuenta más atributos pueden ser difíciles de implementar.
 
-1. **Carga de datos**: Carga los datos relativos a los estudiantes en la
-    tabla `estudiantes`.
-2. **Consulta de datos**: Realiza una consulta para verificar que la
-    inserción se realizó correctamente.
-
-## 4: Actualización y borrado de datos
-
-1. **Actualización de datos**: Actualiza la edad de un estudiante.
-2. **Borrado de datos**: Elimina un registro de estudiante.
-
-## 5: Limpieza y finalización
-
-1. **Borrado de la tabla**. Elimina la tabla `estudiantes`.
-2. **Borrado del _keyspace_**. Elimina el keyspace `bbdd2`.
+Finalmente ningún diseño es perfecto, en nuestro caso hay bastante duplicación de datos, y, aunque la posibilidad de minimizar el número de tablas parece fácil teniendo en cuenta que existen user_stats y hall_of_fame, conlleva sacrificar velocidad debido a la elección de keys.
