@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS hall_of_fame (
     user_name text,
     time_minutes int,
     date text,
-    PRIMARY KEY ((country, dungeon_id), time_minutes))
+    PRIMARY KEY ((country, dungeon_id), date, time_minutes))
     WITH CLUSTERING ORDER BY (time_minutes ASC);
 
 CREATE TABLE IF NOT EXISTS user_stats (
@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS user_stats (
     dungeon_id int,
     time_minutes int,
     date text,
-    PRIMARY KEY ((email, dungeon_id), time_minutes))
-    WITH CLUSTERING ORDER BY (time_minutes ASC);
+    PRIMARY KEY ((email, dungeon_id), date))
+    WITH CLUSTERING ORDER BY (date ASC);
 
 CREATE TABLE IF NOT EXISTS top_horde (
     country text,
