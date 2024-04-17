@@ -1,10 +1,13 @@
-# Objetivos
+# Leaderboards
+## Tabla de Contenidos
 
-
+1. [Planteamieto de la estructura](#planteamiento-estructura)
+3. [Configuración del Entorno](#configuración-del-entorno)
+4. [Conclusiones](#conclusiones)
 
 ## 1. Planteamieto de la estructura
 
-Tras observar la estructura de las tablas de la base de datos SQL y las queries ha realizar hemos planteado una solución de 3 tablas:
+Dentro de este apartado se pretende realizar un prototipo de una base de datos de Cassandra para dar servicio a leaderboards del videojuego.Tras observar la estructura de las tablas de la base de datos SQL y las queries a realizar se ha planteado una solución de 3 tablas:
 
 ### hall_of_fame
 Esta tabla es utilizada para obtener el top 5 de jugadores para cada mazmorra (en función del tiempo que se tardó en completar) para todas las mazmorras de un país. Optamos por la siguiente estructura:
@@ -17,10 +20,12 @@ CREATE TABLE IF NOT EXISTS hall_of_fame (
     user_name text,
     time_minutes int,
     date text,
-    PRIMARY KEY ((country, dungeon_id), time_minutes))
-    WITH CLUSTERING ORDER BY (time_minutes ASC);
+    PRIMARY KEY ((country, dungeon_id), date, time_minutes))
+    WITH CLUSTERING ORDER BY (date ASC);
 ```
-Debido a la naturaleza de Cassandra, nos hemos visto obligados a cambiar la estructura de las inserciones, necesitando incluir country, username y dungeon_name (para poder devolver los datos requeridos en las escrituras y realizar búsquedas más optimas pues country se encuentra dentro de la clave primaria). La idea de la tabla se basa en la primera lectura hall of fame, y para cubrir los requerimientos utilizará country (puesto que los ranking son locales) y dungeon_id como claves primarias para la distribución entre los nodos y time minutes como clustering key para ordenar los tiempos de forma descendente. La limitación de esta tabla es que es imposible obtener en una única query el top 5 juagdores de todas las dngeons de un país, por tanto hemos recurrido a una función de python que hará queries para todas las dungeon_id del país, devolviendo una respuesta en formato json como la descrita en los requerimientos.
+Debido a la naturaleza de Cassandra, nos hemos visto obligados a cambiar la estructura de las inserciones, necesitando incluir country, username y dungeon_name (para poder devolver los datos requeridos en las escrituras y realizar búsquedas más optimas, ya que country se encuentra dentro de la clave primaria). 
+
+La idea de la tabla se basa en la primera lectura hall of fame, y para cubrir los requerimientos utilizará country (puesto que los ranking son locales) y dungeon_id como claves primarias para la distribución entre los nodos y time minutes como clustering key para ordenar los tiempos de forma descendente. La limitación de esta tabla es que es imposible obtener en una única query el top 5 juagdores de todas las dngeons de un país, por tanto hemos recurrido a una función de python que hará queries para todas las dungeon_id del país, devolviendo una respuesta en formato json como la descrita en los requerimientos.
 
 Otra opción que se nos ocurró fue crear una tabla que solo contenga el top 5 para country y dungeon_id, pero la rechazamos porque requeriría un update tras casa inserción algo que par ainserciones a gran escala es ineficiente.
 
@@ -76,7 +81,9 @@ SOURCE '/var/lib/cassandra/create_and_fill.cql'
 ```
 Y espera a que haya terminado.
 
-EXTRA: en `cassandra_queries.ipynb` puedes probar las consultas sin acceder a streamlit.
+Ejecutando `.\cluster\notebooks\cassandra_queries.ipynb` puedes probar las consultas.
+
+Además puedes montar una interfaz de usuario sencilla para probar todas las funcionalidades implementadas en esta parte del proyecto, consulta el [README](../editor_niveles/README.md) para obtener más información.
 
 ## 3. Conclusiones
 
