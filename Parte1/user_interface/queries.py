@@ -130,7 +130,7 @@ def get_top5_monster_recomendations(room_id):
         RETURN id(b1) as source, id(b2) as target, (liked) as weight
     """
 
-    with gds.graph.project.cypher("coliked_beers_temp", node_query, edge_query) as g_temp:
+    with gds.graph.project.cypher("monsters_temp", node_query, edge_query) as g_temp:
         q_source = """
             MATCH (:Room {room_id: $id})-[:CONTAINS]->(b:Monster) RETURN collect(id(b)) as sources
         """
