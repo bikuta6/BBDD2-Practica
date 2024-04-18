@@ -1,4 +1,4 @@
-CREATE KEYSPACE IF NOT EXISTS dungeons WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2};
+CREATE KEYSPACE IF NOT EXISTS dungeons WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
 
 USE dungeons;
 
@@ -9,15 +9,18 @@ CREATE TABLE IF NOT EXISTS hall_of_fame (
     email text,
     user_name text,
     time_minutes int,
-    date text,
+    date timestamp,
     PRIMARY KEY ((country, dungeon_id), time_minutes, date))
     WITH CLUSTERING ORDER BY (time_minutes ASC, date DESC);
+
+
+
 
 CREATE TABLE IF NOT EXISTS user_stats (
     email text,
     dungeon_id int,
     time_minutes int,
-    date text,
+    date timestamp,
     PRIMARY KEY ((email, dungeon_id), date))
     WITH CLUSTERING ORDER BY (date DESC);
 
