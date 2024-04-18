@@ -1,7 +1,0 @@
-ADD:[/var/lib/cassandra/data/dungeons/hall_of_fame-b020c850fd5511eeb632c9003e5c2702/nb-35-big-,0,8][140929880]
-REMOVE:[/var/lib/cassandra/data/dungeons/hall_of_fame-b020c850fd5511eeb632c9003e5c2702/nb-34-big-,1713427063359,8][1902388622]
-REMOVE:[/var/lib/cassandra/data/dungeons/hall_of_fame-b020c850fd5511eeb632c9003e5c2702/nb-28-big-,1713426063413,8][678856616]
-REMOVE:[/var/lib/cassandra/data/dungeons/hall_of_fame-b020c850fd5511eeb632c9003e5c2702/nb-30-big-,1713426176606,8][853215798]
-REMOVE:[/var/lib/cassandra/data/dungeons/hall_of_fame-b020c850fd5511eeb632c9003e5c2702/nb-29-big-,1713426116743,8][3076215580]
-REMOVE:[/var/lib/cassandra/data/dungeons/hall_of_fame-b020c850fd5511eeb632c9003e5c2702/nb-31-big-,1713426788226,8][2216061358]
-COMMIT:[,0,0][2613697770]
