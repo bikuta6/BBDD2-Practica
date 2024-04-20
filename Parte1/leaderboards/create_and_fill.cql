@@ -1,4 +1,4 @@
-CREATE KEYSPACE IF NOT EXISTS dungeons WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};
+CREATE KEYSPACE IF NOT EXISTS dungeons WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 2};
 
 USE dungeons;
 

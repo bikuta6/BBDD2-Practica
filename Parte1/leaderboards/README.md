@@ -27,7 +27,7 @@ Debido a la naturaleza de Cassandra, nos hemos visto obligados a cambiar la estr
 
 La idea de la tabla se basa en la primera lectura hall of fame, y para cubrir los requerimientos utilizará country (puesto que los ranking son locales) y dungeon_id como claves primarias para la distribución entre los nodos y time minutes y date como clustering keys para ordenar los tiempos de forma descendente y asegurar que cada key es única. La limitación de esta tabla es que es imposible obtener en una única query el top 5 juagdores de todas las dungeons de un país, por tanto hemos recurrido a una función de python que hará queries para todas las dungeon_id del país, devolviendo una respuesta en formato json como la descrita en los requerimientos.
 
-Otra opción que se nos ocurró fue crear una tabla que solo contenga el top 5 para country y dungeon_id, pero la rechazamos porque requeriría un update tras casa inserción algo que para inserciones a gran escala es ineficiente y puede llevar a graves problemas de consistencia entre nodos.
+Otra opción que se nos ocurrió fue crear una tabla que solo contenga el top 5 para country y dungeon_id, pero la rechazamos porque requeriría un update y agregaciones tras casa inserción algo que para inserciones a gran escala es ineficiente y puede llevar a graves problemas de consistencia entre nodos.
 
 ### user_stats
 Esta tabla dado el email del usuario y la dungeon devolverá todas las partidas del usuario dentro de esa dungeon.
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS user_stats (
     PRIMARY KEY ((email, dungeon_id), date))
     WITH CLUSTERING ORDER BY (date DESC);
 ```
-Aquí hemos utilizado el email del usuario y la dungeon id como claves primarias de forma que cassandra organice su distribución, seguidamente, y dado que puede ser intereante, decidimos incluir una clustering key con el tiempo en minutos que el usuario tardó en completar la mazmorra, poniendo en primera posición la partida más reciente. 
+Aquí hemos utilizado el email del usuario y la dungeon id como claves primarias de forma que cassandra organice su distribución, seguidamente, y dado que puede ser interesante, decidimos incluir una clustering key con el timestamp del momento en que el usuario completó la mazmorra, poniendo en primera posición la partida más reciente. 
 
 Para ajustar el output a los requerimientos, hemos decidido de nuevo utilizar una fucnión de python que genera el json con los resultados.
 
@@ -57,9 +57,9 @@ CREATE TABLE IF NOT EXISTS top_horde (
     PRIMARY KEY ((country, event_id), email, kill_id)
 );
 ```
-Debido a la naturaleza de Cassandra, nos hemos visto obligados a cambiar la estructura de las inserciones, necesitando incluir country, username y un kill_id, siendo esta última esencial para el funcionamineto objetivo. De nuevo y de forma similar a hall_of_fame, decidimos establecer como claves primarias country y event_id (siendo dungeon_id en el caso anterior). Las clustering key son el email del usuario y, aunque inicialmente parezca de poco uso, kill_id. Esto es porque detnro de una fucnión de python, se hará una query a la tabla haciendo un groupby por los atributos country, event_id e email, devolviendo un count de los elementos de cada grupo, esto será el n_kills de los requerimientos, y este métdo count solo funciona si kill_id se encuentra dentro de las claves (además, al usar las claves primarias contry y event_id, nos aseguramos que el groupby se ejecuta en un solo nodo, reduciendo los problemas de eficiencia que tiene Cassandra con este tipo de operaciones). Seguidamente se ordena por n_kills y se devuelve un json con los top K usuarios con más kills.
+Debido a la naturaleza de Cassandra, nos hemos visto obligados a cambiar la estructura de las inserciones, necesitando incluir country, username y un kill_id, siendo esta última esencial para el funcionamineto objetivo. De nuevo y de forma similar a hall_of_fame, decidimos establecer como claves primarias country y event_id (siendo dungeon_id en el caso anterior). Las clustering key son el email del usuario y, aunque inicialmente parezca de poco uso, kill_id. Esto es porque dentro de una fucnión de python, se hará una query a la tabla haciendo un groupby por los atributos country, event_id e email, devolviendo un count de los elementos de cada grupo, esto será el n_kills de los requerimientos, y este métdo count solo funciona si kill_id se encuentra dentro de las claves (además, al usar las claves primarias contry y event_id, nos aseguramos que el groupby se ejecuta en un solo nodo esto debido a la replicación, reduciendo los problemas de eficiencia que tiene Cassandra con este tipo de operaciones). Seguidamente se ordena por n_kills y se devuelve un json con los top K usuarios con más kills.
 
-Inicialmente pensamos es establecer un atributo tipo counter llamado n_kills dentro de la tabla que hiciese un update sumando uno tras cada inserción en la fila correspondiente, pero esto daba muchos problemas de velocidad y las queries eran poco limpias y comprensibles, por tanto optamos por la versión actual. Además la búsqueda del usuario y evento para cada inserción podría provocar problemas de consistencia enre nodos.
+Inicialmente pensamos es establecer un atributo tipo counter llamado n_kills dentro de la tabla que hiciese un update sumando uno tras cada inserción en la fila correspondiente, pero esto daba muchos problemas de velocidad y el hecho de tener que realizar una agregación tras cada inserción nos hizo rechazar la idea pues no es tan escalable (y consistente), por tanto optamos por la versión actual. 
 
 
 ## 2. Configuración del entorno
@@ -87,6 +87,6 @@ Además puedes montar una interfaz de usuario sencilla para probar todas las fun
 
 ## 3. Conclusiones
 
-Cassandra puede ser ideal para muchos casos, pero para muchos otros más puede requerir el uso de aplicaciones externas, como es el caso. Operaciones más complejas como groupby así como ordenaciones que deben tener en cuenta más atributos fuera de las claves pueden ser difíciles o imposibles de implementar (eficientemente).
+Cassandra puede ser ideal para muchos casos, pero para muchos otros más puede requerir el uso de un cliente externo, como es el caso. Operaciones más complejas como groupby así como ordenaciones que deben tener en cuenta más atributos fuera de las claves pueden ser difíciles o imposibles de implementar.
 
-Finalmente ningún diseño es perfecto, en nuestro caso hay bastante duplicación de datos, y, aunque la posibilidad de minimizar el número de tablas parece fácil teniendo en cuenta que existen user_stats y hall_of_fame, conlleva sacrificar velocidad debido a la elección de keys.
+Finalmente ningún diseño es perfecto, en nuestro caso hay bastante duplicación de datos y nuestra ruta de pensamiento consiste en insertar los datos masivamente para evitar problemas de agregaciones y updates.
