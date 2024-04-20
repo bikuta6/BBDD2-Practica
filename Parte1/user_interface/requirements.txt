@@ -5,3 +5,4 @@ numpy
 cassandra-driver
 streamlit
 graphdatascience
+pandas
