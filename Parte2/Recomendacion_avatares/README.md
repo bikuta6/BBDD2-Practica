@@ -3,4 +3,4 @@
 El proceso se encuentra paso por paso en el notebook `Data_management.ipynb`.
 
 ### Extra
-Puedes utilizar una interfaz web ejecuntando `main.py` en la carpeta de ruta `../user_interface/` desde este directorio.
+Puedes utilizar una interfaz web para probar las funcionalidades implementadas (text to image y image to image), ejecutando `main.py` tras instalar las dependencias en la carpeta de ruta `../user_interface/` desde este directorio.
