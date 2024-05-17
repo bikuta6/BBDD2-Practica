@@ -130,4 +130,78 @@ En estas endpoints se especifica la necesidad de autenticación, ya sea por part
     
 ## Creación de nueva colección Hints
 
+Desde mongodbCompass ejecutamos la consulta que aparece al principio de `hints_api_calls.ipynb` y guardamos lo datos en formato .json, seguidamente creando la colección Hints y poblándola con el archivo recién creado. Cabe destacar que algunas consultas ya mostradas en `api_calls.ipynb` han cambiado, a continuación se explican algunas de ellas:
+
+#### post_comment()
+    Permite a un usuario autenticado añadir un comentario a una habitación específica del juego. Aquí está el flujo de la función:
+
+    1. Se crea una conexión a la base de datos MongoDB
+
+    2. Se obtiene la información del usuario (user_info) utilizando el email proporcionado para incluirla en los detalles del comentario.
+
+    3. Se obtiene la información de la habitación (room_info) utilizando el room_id proporcionado para incluirla en los detalles del comentario.
+
+    3. Se inserta un nuevo documento en la colección de comentarios (Hints) que contiene los detalles del comentario, incluyendo el correo electrónico del usuario, su nombre, la fecha de creación del comentario y la información de la habitación asociada.
+
+#### get_dungeon_by_id()
+    Para resolver este problema, se han seguido estos pasos:
+
+    1. Extraer todas las habitaciones (rooms) que pertenezcan al dungeon especificado.
+    2. Recorrer cada una de estas habitaciones para obtener la información deseada (información de la habitación,monsters y loot). La información de las habitaciones, los monsters y loot son consultas básicas por room id, count_of_comment_categories se realiza encontrando la lista de hints de la room indicada, filtrando en la colleción de comentarios (Hints) y agrupando por catgoría y proyectando para tener el count por categoría.
+    3. Se ha considerado que los hints de categoría "lore" representan la información de lore.
+
+#### get_room_by_id()
+    Esta función trabaja como get_loot_by_id() y get_monster_by_id(), extrayendo la información de la habitación indicada por id. Se diferencia de la versión anterior en que requiere una consulta a la colleción de comentarios (Hints) para obtener los comentarios a incluir en la respuesta.
+
+#### get_user_by_email()
+    Busca y devuelve información detallada sobre un usuario específico del juego identificado por su correo electrónico (email). La información devuelta incluye el correo electrónico, nombre de usuario, país, fecha de creación del usuario y detalles de los comentarios realizados por el usuario, incluyendo la categoría del comentario, el texto, la fecha de creación y la referencia a la habitación y mazmorra asociadas, en formato JSON. De nuevo, el único cambio respecto a la versión anterior es que los comentarios de obtienen mediante una consulta extra a la colección de comentarios (Hints).
+
+Cabe decir que en estas últimas dos queries se podría haber usado la función lookup de mongo, pero por hacer un código más legible, y aprovechando la posibilidad de usar python, se ha decidido simplemente hacer otra query.
+
+
 ## Consultas 
+
+A continuación se explicará la lógica detrás de cada uno de los pasos de las consultas a realizar en el apartado de MongoDBcompass.
+
+### El número de cuentas de usuario que se crearon cada año agrupadas por país.
+    1. Iniciamos la consulta en la colección de usuarios, agrupando por país y por año de creación. Además añadimos un operador que cuenta los documentos (es decir, el número de usuarios) de cada uno de los grupos.
+
+    2. Seguidamente agrupamos por año, creando un atributo a devolver de cada grupo denominado country, un array de documentos con dos campos, k (key) que contendrá el nombre del país, y v (value) que contendrá el recuento realizado en la anterior agrupación.
+
+    3. Finalmente proyectamos mostrando el año y pais, dentro del cual hay campos con el nombre de pais, con el valor correspondiente a los recuentos de usuarios.
+
+### Los 20 países cuyos usuarios han realizado el mayor número de posts de tipo Lore en los últimos 5 años.
+    1. Dentro de la colleción Hints, iniciamos con un proyección de los campos que vamos a utilizar, obteniendo el año de creación de los posts, la categoría, el país, y el email del usuario que realiza el post.
+
+    2. Filtramos por categoría, quedándonos con los posts de tipo lore, y por año, obligando a que el valor sea 5 años menor que el mayor año de la colección.
+
+    3. Agrupamos por país, creando una variable lore_posts que tiene el recuento de documentos por grupo.
+
+    4. Finalmente ordenamos por este recuento y nos quedamos con el top 20 (aunque en la colección hay menos de 20 países distintos).
+
+### Los 5 usuarios que más bugs han reportado en 2022. Deben aparecer ordenados de mayor a menor.
+    1. De nuevo, dentro de Hints, proyectamos los valores que vamos a usar, email del usuario, username, la categoría del post y el momento de creación del post.
+
+    2. Filtramos por categoría para mantener los post de categoría bug y por año, para que sean del año 2022.
+
+    3. Seguidamente agrupamos por email (que es único), nos quedamos también con el username, siendo el primer valor de cada grupo (en este caso único, pues el email lo es) y establecemos un campo de recuento, bugs_reported, con el número de bugs reportados por usuario.
+
+    4. Finalmente ordenamos de forma descendente.
+
+### La mazmorra que más sugerencias ha recibido desglosada en países.
+    1. Finalmente, en Hints, filtramos por categoría para mantener post de sugerencias.
+
+    2. Agrupamos por país y dungeon, creando el campo count con el recuento de posts.
+
+    3. Proyectamos país, nombre de la mazmorra y recuento.
+
+    4. Ordenamos por país de forma ascendente y por recuento de forma descendente, de forma que por cada país, el primer valor será la mazmorra con el mayor número de sugerencias (no se contempla varias mazmorras con el mismo recuento, pues hemos querido mantener el formato de output del enunciado).
+
+    5. Agrupamos por país y creamos un campo de nombre de mazmorra con el primer valor de nombre de mazmorra que aparezca para cada grupo (debido a la ordenación de antes, es el nombre buscado).
+
+    6. Finalmente proyectamos el país y el nombre de la mazmorra.
+
+
+
+
+

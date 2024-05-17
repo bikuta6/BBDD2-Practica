@@ -30,38 +30,49 @@ A. El número de cuentas de usuario que se crearon cada año agrupadas por país
 
 db.users.aggregate([
   {
-    $group: {
-      _id: {
-        country: "$country",
-        year: { $year: { $toDate: "$creation_date" } }
-      },
-      totalAccounts: { $sum: 1 }
-    }
+    $group:
+      /**
+       * _id: The id of the group.
+       * fieldN: The first field name.
+       */
+      {
+        _id: {
+          year: {
+            $year: {
+              $toDate: "$creation_date"
+            }
+          },
+          country: "$country"
+        },
+        count: {
+          $sum: 1
+        }
+      }
   },
   {
     $group: {
       _id: "$_id.year",
-      countries: {
+      Countries: {
         $push: {
           k: "$_id.country",
-          v: "$totalAccounts"
+          v: "$count"
         }
       }
     }
   },
   {
-    $project: {
-      _id: 0,
-      Year: "$_id",
-      Countries: {
-        $arrayToObject: "$countries"
+    $project:
+      /**
+       * specifications: The fields to
+       *   include or exclude.
+       */
+      {
+        Year: "$_id",
+        Countries: {
+          $arrayToObject: "$Countries"
+        },
+        _id: 0
       }
-    }
-  },
-  {
-    $sort: {
-      Year: 1
-    }
   }
 ])
 
@@ -70,29 +81,72 @@ años. Los países deben aparecen ordenados de mayor a menor número de posts.
 
 db.Hints.aggregate([
   {
-    $match: {
-      Category: "lore",
-      $expr: {
-        $gte: [
-          { $toDate: "$Creation_date" },
-          { $subtract: [“$$NOW”, 365 * 5 * 24 * 60 * 60 * 1000] } // Restamos 5 años de la fecha actual
-        ]
+    $project:
+      /**
+       * newField: The new field name.
+       * expression: The new field expression.
+       */
+      {
+        Creation_date: {
+          $year: {
+            $toDate: "$Creation_date"
+          }
+        },
+        Country: "$Publish_by.Country",
+        Category: "$Category",
+        Email: "$Publish_by.Email"
       }
-    }
   },
   {
-    $group: {
-      _id: "$Publish_by.Country",
-      totalPosts: { $sum: 1 }
-    }
+    $match:
+      /**
+       * query: The query in MQL.
+       */
+      {
+        Category: "lore",
+        $expr: {
+          $gte: [
+            "$Creation_date",
+            {
+              $subtract: [
+                {
+                  $max: "$Creation_date"
+                },
+                5
+              ]
+            }
+          ]
+        }
+      }
   },
   {
-    $sort: {
-      totalPosts: -1
-    }
+    $group:
+      /**
+       * _id: The id of the group.
+       * fieldN: The first field name.
+       */
+      {
+        _id: "$Country",
+        lore_posts: {
+          $sum: 1
+        }
+      }
   },
   {
-    $limit: 20
+    $sort:
+      /**
+       * Provide any number of field/order pairs.
+       */
+      {
+        lore_posts: -1
+      }
+  },
+  {
+    $limit:
+      /**
+       * Provide the number of documents to limit.
+       */
+      20
   }
 ])
 
@@ -101,37 +155,68 @@ C. Los 5 usuarios que más bugs han reportado en 2022. Deben aparecer ordenados 
 
 db.Hints.aggregate([
   {
-    $match: {
-      Category: "bug",
-      $expr: {
-        $eq: [{ $year: { $toDate: "$Creation_date" } }, 2022]
+    $project:
+      /**
+       * specifications: The fields to
+       *   include or exclude.
+       */
+      {
+        email: "$Publish_by.Email",
+        user_name: "$Publish_by.User_name",
+        category: "$Category",
+        creation_date: "$Creation_date"
       }
-    }
   },
   {
-    $group: {
-      _id: {
-		“email”: “$Publish_by.Email",
-		“user_name”: “$Publish_by.User_name”
-	},
-
-      totalBugs: { $sum: 1 }
-    }
+    $match:
+      /**
+       * query: The query in MQL.
+       */
+      {
+        category: "bug",
+        $expr: {
+          $eq: [
+            {
+              $year: {
+                $toDate: "$creation_date"
+              }
+            },
+            2022
+          ]
+        }
+      }
   },
   {
-    $project: {
-      _id: 0,
-      user_name: “$_id.user_name",
-      total_bugs_reported: "$totalBugs"
-    }
+    $group:
+      /**
+       * _id: The id of the group.
+       * fieldN: The first field name.
+       */
+      {
+        _id: "$email",
+        user_name: {
+          $first: "$user_name"
+        },
+        bugs_reported: {
+          $sum: 1
+        }
+      }
   },
   {
-    $sort: {
-      total_bugs_reported: -1
-    }
+    $sort:
+      /**
+       * Provide any number of field/order pairs.
+       */
+      {
+        bugs_reported: -1
+      }
   },
   {
-    $limit: 5
+    $limit:
+      /**
+       * Provide the number of documents to limit.
+       */
+      5
   }
 ])
 
@@ -140,35 +225,74 @@ D. La mazmorra que más sugerencias ha recibido desglosada en países.
 
 db.Hints.aggregate([
   {
-    $match: {
-      Category: "suggestion"
-    }
+    $match:
+      /**
+       * query: The query in MQL.
+       */
+      {
+        Category: "suggestion"
+      }
   },
   {
-    $group: {
-      _id: {
-        country: "$Publish_by.Country",
-        dungeon_name: "$References_room.Dungeon"
-      },
-      totalSuggestions: { $sum: 1 }
-    }
+    $group:
+      /**
+       * _id: The id of the group.
+       * fieldN: The first field name.
+       */
+      {
+        _id: {
+          country: "$Publish_by.Country",
+          dungeon_name: "$References_room.Dungeon"
+        },
+        count: {
+          $sum: 1
+        }
+      }
   },
   {
-    $sort: {
-      totalSuggestions: -1
-    }
+    $project:
+      /**
+       * specifications: The fields to
+       *   include or exclude.
+       */
+      {
+        country: "$_id.country",
+        dungeon_name: "$_id.dungeon_name",
+        count: "$count"
+      }
   },
   {
-    $group: {
-      _id: "$_id.country",
-      topDungeon: { $first: "$_id.dungeon_name" }
-    }
+    $sort:
+      /**
+       * Provide any number of field/order pairs.
+       */
+      {
+        country: 1,
+        count: -1
+      }
   },
   {
-    $project: {
-      _id: 0,
-      country: "$_id",
-      dungeon_name: "$topDungeon"
-    }
+    $group:
+      /**
+       * _id: The id of the group.
+       * fieldN: The first field name.
+       */
+      {
+        _id: "$country",
+        dungeon_name: {
+          $first: "$dungeon_name"
+        }
+      }
+  },
+  {
+    $project:
+      /**
+       * specifications: The fields to
+       *   include or exclude.
+       */
+      {
+        country: "$_id.country",
+        dungeon_name: "$dungeon_name"
+      }
   }
 ])
