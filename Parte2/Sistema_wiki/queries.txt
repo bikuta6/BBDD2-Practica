@@ -256,31 +256,41 @@ db.Hints.aggregate([
        *   include or exclude.
        */
       {
+        _id: 0,
         country: "$_id.country",
         dungeon_name: "$_id.dungeon_name",
         count: "$count"
       }
   },
   {
-    $sort:
-      /**
-       * Provide any number of field/order pairs.
-       */
-      {
-        country: 1,
-        count: -1
+    $group: {
+      _id: "$country",
+      max_recomm: {
+        $max: "$count"
+      },
+      dungeons_max_votos: {
+        $push: {
+          dungeon_name: "$dungeon_name",
+          suggestions: "$count"
+        }
       }
+    }
   },
   {
-    $group:
+    $unwind: "$dungeons_max_votos"
+  },
+  {
+    $match:
       /**
-       * _id: The id of the group.
-       * fieldN: The first field name.
+       * specifications: The fields to
+       *   include or exclude.
        */
       {
-        _id: "$country",
-        dungeon_name: {
-          $first: "$dungeon_name"
+        $expr: {
+          $eq: [
+            "$max_recomm",
+            "$dungeons_max_votos.suggestions"
+          ]
         }
       }
   },
@@ -292,7 +302,23 @@ db.Hints.aggregate([
        */
       {
         country: "$_id.country",
-        dungeon_name: "$dungeon_name"
+        dungeon:
+          "$dungeons_max_votos.dungeon_name"
+      }
+  },
+  {
+    $group:
+      /**
+       * _id: The id of the group.
+       * fieldN: The first field name.
+       */
+      {
+        _id: "$_id",
+        dungeons: {
+          $push: {
+            dungeon_name: "$dungeon"
+          }
+        }
       }
   }
 ])

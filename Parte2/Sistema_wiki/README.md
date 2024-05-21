@@ -195,11 +195,15 @@ A continuación se explicará la lógica detrás de cada uno de los pasos de las
 
     3. Proyectamos país, nombre de la mazmorra y recuento.
 
-    4. Ordenamos por país de forma ascendente y por recuento de forma descendente, de forma que por cada país, el primer valor será la mazmorra con el mayor número de sugerencias (no se contempla varias mazmorras con el mismo recuento, pues hemos querido mantener el formato de output del enunciado).
+    4. Agrupamos por pais, obtenemos el máximo de del recuento en las mazmorras del país y creamos un array que contiene mazmorra y su recuento.
 
-    5. Agrupamos por país y creamos un campo de nombre de mazmorra con el primer valor de nombre de mazmorra que aparezca para cada grupo (debido a la ordenación de antes, es el nombre buscado).
+    5. Unwind del array antes creado.
 
-    6. Finalmente proyectamos el país y el nombre de la mazmorra.
+    6. Filtramos haciendo que el número del recuento sea igual al máximo.
+
+    7. Proyectamos país y mazmorra.
+
+    8. Agrupamos por país de nuevo y le creamos un array con el nombre de las mazmorras correspondientes.
 
 
 
